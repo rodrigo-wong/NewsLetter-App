@@ -20,6 +20,8 @@ class NewsletterSubscriberController extends Controller
             'frequency' => 'required|in:minute,hour,daily',
             'percentage_alert' => 'required|numeric|min:1.01',
             'captcha' => 'required|captcha',
+        ], [
+            'captcha.captcha' => 'The captcha is incorrect, please try again.',
         ]);
 
         $subscriber = NewsletterSubscriber::create([
