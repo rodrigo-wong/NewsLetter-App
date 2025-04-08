@@ -3,6 +3,9 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NewsletterSubscriberController;
 
+Route::get('/', function () {
+    return redirect('/signup');
+})->name('home');
 Route::get('/signup', [NewsletterSubscriberController::class, 'showSignupForm']);
 Route::post('/signup', [NewsletterSubscriberController::class, 'processSignup']);
 
