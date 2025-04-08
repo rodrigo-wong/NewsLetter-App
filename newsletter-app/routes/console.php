@@ -16,7 +16,7 @@ Schedule::call(function() {
     sendNewsletter('daily');
 })
 ->daily()
-->at('08:00')
+->at('00:00')
 ->timezone('America/New_York')
 ->name('send-daily-newsletter')
 ->description('Send daily cryptocurrency newsletter to subscribers');
