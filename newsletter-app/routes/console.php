@@ -1,5 +1,6 @@
 <?php
 
+use App\Mail\NewsletterMail;
 use App\Models\NewsletterSubscriber;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Http;
@@ -38,14 +39,16 @@ Schedule::call(function() {
 
 function sendNewsletter($frequency)
 {
-    $subscribers = NewsletterSubscriber::where('frequency', $frequency)->get();
+    $subscribers = \App\Models\NewsletterSubscriber::where('frequency', $frequency)->get();
 
-    $response = Http::get('https://api.coinlore.net/api/tickers/');
+    // Fetch cryptocurrency data from the Coinlore API
+    $response = \Illuminate\Support\Facades\Http::get('https://api.coinlore.net/api/tickers/');
     $data = $response->json();
     $cryptos = collect($data['data']);
 
     foreach ($subscribers as $subscriber) {
-        $tableRows = '';
+        // Build an array of rows for the newsletter table.
+        $rows = [];
 
         foreach (['btc', 'eth', 'doge', 'ltc', 'xrp', 'bch', 'bnb', 'eos', 'ada', 'dot'] as $ticker) {
             if ($subscriber->$ticker) {
@@ -59,38 +62,21 @@ function sendNewsletter($frequency)
                     } elseif ($percentChange <= -$subscriber->percentage_alert) {
                         $bgColor = 'red';
                     }
-                    $tableRows .= "<tr style='background-color: {$bgColor};'>
-                            <td>{$crypto['symbol']}</td>
-                            <td>\${$price}</td>
-                            <td>{$percentChange}%</td>
-                        </tr>";
+                    
+                    $rows[] = [
+                        'symbol'        => $crypto['symbol'],
+                        'price'         => $price,
+                        'percentChange' => $percentChange,
+                        'bgColor'       => $bgColor,
+                    ];
                 }
             }
         }
 
         $unsubscribeUrl = route('unsubscribe', ['id' => $subscriber->id]);
-        $emailBody = "
-                <h2>Cryptocurrency Newsletter</h2>
-                <table border='1' cellpadding='5'>
-                    <thead>
-                        <tr>
-                            <th>Ticker</th>
-                            <th>Price (USD)</th>
-                            <th>1h % Change</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {$tableRows}
-                    </tbody>
-                </table>
-                <p><a href='{$unsubscribeUrl}'>Unsubscribe</a></p>
-            ";
 
-            Mail::send([], [], function ($message) use ($subscriber, $emailBody) {
-                $message->to($subscriber->email)
-                    ->subject('Your Cryptocurrency Newsletter')
-                    ->html($emailBody);
-            });
-            
+        // Send the newsletter using the mailable, passing the raw data.
+        Mail::to($subscriber->email)
+            ->send(new NewsletterMail($rows, $unsubscribeUrl));
     }
 }
